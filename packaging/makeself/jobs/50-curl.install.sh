@@ -4,7 +4,9 @@
 # shellcheck source=packaging/makeself/functions.sh
 . "$(dirname "${0}")/../functions.sh" "${@}" || exit 1
 
-fetch "curl-curl-7_60_0" "https://github.com/curl/curl/archive/curl-7_60_0.tar.gz"
+version="$(cat "$(dirname "${0}")/../curl.version")"
+
+fetch "curl-${version}" "https://github.com/curl/curl/archive/${version}.tar.gz"
 
 export CFLAGS="-I/openssl-static/include"
 export LDFLAGS="-static -L/openssl-static/lib"
