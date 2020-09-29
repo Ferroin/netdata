@@ -4,7 +4,9 @@
 # shellcheck source=packaging/makeself/functions.sh
 . "$(dirname "${0}")/../functions.sh" "${@}" || exit 1
 
-fetch "fping-4.2" "https://github.com/schweikert/fping/releases/download/v4.2/fping-4.2.tar.gz"
+version="$(cat "$(dirname "${0}")/../fping.version")"
+
+fetch "fping-${version}" "https://github.com/schweikert/fping/releases/download/v${version}/fping-${version}.tar.gz"
 
 export CFLAGS="-static -I/openssl-static/include"
 export LDFLAGS="-static -L/openssl-static/lib"
