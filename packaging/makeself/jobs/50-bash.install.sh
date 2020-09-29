@@ -4,7 +4,9 @@
 # shellcheck source=packaging/makeself/functions.sh
 . "$(dirname "${0}")/../functions.sh" "${@}" || exit 1
 
-fetch "bash-4.4.18" "http://ftp.gnu.org/gnu/bash/bash-4.4.18.tar.gz"
+version="$(cat "$(dirname "${0}")/../bash.version")"
+
+fetch "${version}" "http://ftp.gnu.org/gnu/bash/${version}.tar.gz"
 
 export PKG_CONFIG_PATH="/openssl-static/lib/pkgconfig"
 
