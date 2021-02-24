@@ -59,8 +59,9 @@ FROM netdata/base:latest as base
 # Configure system
 ARG NETDATA_UID=201
 ARG NETDATA_GID=201
-ENV DOCKER_GRP netdata
-ENV DOCKER_USR netdata
+
+ENV NETDATA_UID=$NETDATA_UID
+ENV NETDATA_GID=$NETDATA_GID
 # If DO_NOT_TRACK is set, it will disable anonymous stats collection and reporting
 #ENV DO_NOT_TRACK=1
 
@@ -73,9 +74,6 @@ RUN mkdir -p /opt/src /var/log/netdata && \
     # fping from alpine apk is on a different location. Moving it.
     ln -snf /usr/sbin/fping /usr/local/bin/fping && \
     chmod 4755 /usr/local/bin/fping && \
-    # Add netdata user
-    addgroup -g ${NETDATA_GID} -S "${DOCKER_GRP}" && \
-    adduser -S -H -s /usr/sbin/nologin -u ${NETDATA_GID} -h /etc/netdata -G "${DOCKER_GRP}" "${DOCKER_USR}"
 
 # Long-term this should leverage BuildKit’s mount option.
 COPY --from=builder /wheels /wheels
@@ -88,12 +86,6 @@ RUN chown -R root:root \
         /etc/netdata \
         /usr/share/netdata \
         /usr/libexec/netdata && \
-    chown -R netdata:root \
-        /usr/lib/netdata \
-        /var/cache/netdata \
-        /var/lib/netdata \
-        /var/log/netdata && \
-    chown -R netdata:netdata /var/lib/netdata/cloud.d && \
     chmod 0700 /var/lib/netdata/cloud.d && \
     chmod 0755 /usr/libexec/netdata/plugins.d/*.plugin && \
     chmod 4755 \
