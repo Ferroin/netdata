@@ -74,7 +74,7 @@ jobs:
                 ;;
               *)
                 echo "repo=${{ secrets.PACKAGE_CLOUD_REPO }}-devel" >> $GITHUB_ENV
-                echo "pkg_version=$(git describe | sed -e 's/^v//')" >> $GITHUB_ENV
+                echo "pkg_version=0.${GITHUB_SHA}" >> $GITHUB_ENV
                 echo "pkg_retention_days=30" >> $GITHUB_ENV
                 ;;
             esac
