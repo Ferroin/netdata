@@ -117,10 +117,11 @@ jobs:
         run: |
           # This figures out the distribution ID for the upload.
           DIST_ID="$(curl https://${{ secrets.PACKAGE_CLOUD_API_KEY }}:@packagecloud.io/api/v1/distributions.json | ${GITHUB_WORKSPACE}/.github/scripts/parse_packagecloud_dist_id.py ${{ matrix.format }} ${{ matrix.pkgclouddistro }} ${{ matrix.pkgcloudversion }})"
-          for pkgfile in artifacts/*.${FORMAT} ; do
+          for pkgfile in artifacts/*.${{ matrix.format }} ; do
             curl -F "package[distro_version_id]=${BUILD_ID}" \
                  -F "package[package_file]=@${pkgfile}" \
                  https://${{ secrets.PACKAGE_CLOUD_API_KEY }}:@packagecloud.io/api/v1/repos/${{ env.repo }}/packages.json || exit 1
+          done
       - name: Clean
         if: github.event_name == 'workflow_dispatch'
         shell: bash
