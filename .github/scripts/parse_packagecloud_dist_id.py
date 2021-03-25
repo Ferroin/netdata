@@ -28,7 +28,7 @@ for entry in data[fmt]:
 
 if not versions:
     print('Could not find version information for the requested distribution.')
-    sys.exit(-1)
+    sys.exit(1)
 
 for entry in versions:
     if entry['version_number'] == version:
@@ -36,4 +36,4 @@ for entry in versions:
         sys.exit(0)
 
 print('Unable to find id for requested version.')
-sys.exit(-1)
+sys.exit(2)
