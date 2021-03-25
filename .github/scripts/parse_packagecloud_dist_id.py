@@ -14,9 +14,6 @@ import sys
 fmt = sys.argv[1]      # The package format ('deb' or 'rpm')
 distro = sys.argv[2]   # The distro name
 version = sys.argv[3]  # The distro version
-print(fmt)
-print(distro)
-print(version)
 
 data = json.load(sys.stdin)
 versions = []
