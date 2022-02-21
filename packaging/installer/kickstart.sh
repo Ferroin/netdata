@@ -1303,11 +1303,44 @@ install_on_macos() {
 }
 
 install_on_freebsd() {
-  if [ "${NETDATA_ONLY_NATIVE}" -eq 1 ]; then
-    fatal "User requested native package, but native packages are not available for FreeBSD. Try installing without \`--only-native\` option." F0308
-  elif [ "${NETDATA_ONLY_STATIC}" -eq 1 ]; then
+  if [ "${NETDATA_ONLY_STATIC}" -ne 1 ] && [ "${NETDATA_ONLY_BUILD}" -ne 1 ] && [ "${RELEASE_CHANNEL}" = "stable" ]; then
+    if [ "${INTERACTIVE}" = "0" ]; then
+      interactive_opts="-y"
+    else
+      interactive_opts=""
+    fi
+
+    # shellcheck disable=SC2086
+    run ${ROOTCMD} pkg install ${interactive_opts} netdata
+
+    case "$?" in
+      0)
+        NETDATA_INSTALL_SUCCESSFUL=1
+        ;;
+      *)
+        fatal "Unable to install on this system." F030B
+        ;;
+    esac
+
+    install_type_file="/usr/local/etc/netdata/.install-type"
+    if [ -f "${install_type_file}" ]; then
+      ${ROOTCMD} sh -c "cat \"${install_type_file}\" > \"${tmpdir}/install-type\""
+      ${ROOTCMD} chown "$(id -u)":"$(id -g)" "${tmpdir}/install-type"
+      # shellcheck disable=SC1091
+      . "${tmpdir}/install-type"
+      cat > "${tmpdir}/install-type" <<- EOF
+	INSTALL_TYPE='binpkg-freebsd-kickstart'
+	EOF
+      ${ROOTCMD} chown netdata:netdata "${tmpdir}/install-type"
+      ${ROOTCMD} cp "${tmpdir}/install-type" "${install_type_file}"
+    fi
+  fi
+
+  if [ "${NETDATA_ONLY_STATIC}" -eq 1 ]; then
     fatal "User requested static build, but static builds are not available for FreeBSD. Try installing without \`--only-static\` option." F0309
-  else
+  fi
+
+  if [ "${NETDATA_ONLY_NATIVE}" -ne 1 ] && [ "${NETDATA_ONLY_STATIC}" -ne 1 ] && [ -z "${NETDATA_INSTALL_SUCCESSFUL}" ]; then
     SELECTED_INSTALL_METHOD="build"
     INSTALL_TYPE="kickstart-build"
     try_build_install
