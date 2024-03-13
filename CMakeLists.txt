@@ -476,32 +476,9 @@ if(FREEBSD OR MACOS)
 endif()
 
 # openssl/crypto
-set(ENABLE_OPENSSL True)
-pkg_check_modules(OPENSSL openssl)
 
-if(NOT OPENSSL_FOUND)
-        if(MACOS)
-                execute_process(COMMAND
-                                brew --prefix --installed openssl
-                                RESULT_VARIABLE BREW_OPENSSL
-                                OUTPUT_VARIABLE BREW_OPENSSL_PREFIX
-                                OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-                if((BREW_OPENSSL NOT EQUAL 0) OR (NOT EXISTS "${BREW_OPENSSL_PREFIX}"))
-                        message(FATAL_ERROR "OpenSSL (or LibreSSL) is required for building Netdata, but could not be found.")
-                endif()
-
-                set(OPENSSL_INCLUDE_DIRS "${BREW_OPENSSL_PREFIX}/include")
-                set(OPENSSL_CFLAGS_OTHER "")
-                set(OPENSSL_LDFLAGS "-L${BREW_OPENSSL_PREFIX}/lib;-lssl;-lcrypto")
-        else()
-            message(FATAL_ERROR "OpenSSL (or LibreSSL) is required for building Netdata, but could not be found.")
-        endif()
-endif()
-
-if(NOT MACOS)
-        pkg_check_modules(CRYPTO libcrypto)
-endif()
+include(NetdataTLS)
+netdata_check_tls_libraries()
 
 #
 # figure out if we need protoc/protobuf
@@ -1440,9 +1417,7 @@ if(ENABLE_H2O)
 
         target_compile_options(h2o PUBLIC -DH2O_USE_LIBUV=0)
 
-        target_include_directories(h2o BEFORE PRIVATE ${OPENSSL_INCLUDE_DIRS})
-        target_compile_options(h2o PRIVATE ${OPENSSL_CFLAGS_OTHER})
-        target_link_libraries(h2o PRIVATE ${OPENSSL_LIBRARIES})
+        netdata_add_tls_libraries(h2o PRIVATE)
 endif()
 
 #
@@ -1572,15 +1547,8 @@ if(LIBBROTLI_FOUND)
         target_link_libraries(libnetdata PUBLIC ${LIBBROTLI_LDFLAGS})
 endif()
 
-# crypto
-target_include_directories(libnetdata BEFORE PUBLIC ${CRYPTO_INCLUDE_DIRS})
-target_compile_options(libnetdata PUBLIC ${CRYPTO_CFLAGS_OTHER})
-target_link_libraries(libnetdata PUBLIC ${CRYPTO_LDFLAGS})
-
-# openssl
-target_include_directories(libnetdata BEFORE PUBLIC ${OPENSSL_INCLUDE_DIRS})
-target_compile_options(libnetdata PUBLIC ${OPENSSL_CFLAGS_OTHER})
-target_link_libraries(libnetdata PUBLIC ${OPENSSL_LDFLAGS})
+netdata_add_crypto_libraries(libnetdata PUBLIC)
+netdata_add_tls_libraries(libnetdata PUBLIC)
 
 # mnl
 if(NOT MACOS)
