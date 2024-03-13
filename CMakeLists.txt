@@ -250,6 +250,13 @@ else()
 endif()
 
 #
+# Required libraries
+#
+
+include(NetdataRequiredLibs)
+netdata_check_required_libraries()
+
+#
 # Libm
 #
 
@@ -1531,17 +1538,7 @@ endif()
 
 netdata_add_libyaml_to_target(libnetdata)
 
-# zlib
-if(MACOS)
-        find_package(ZLIB REQUIRED)
-        target_include_directories(libnetdata BEFORE PUBLIC ${ZLIB_INCLUDE_DIRS})
-        target_link_libraries(libnetdata PUBLIC ZLIB::ZLIB)
-else()
-        pkg_check_modules(ZLIB REQUIRED zlib)
-        target_include_directories(libnetdata BEFORE PUBLIC ${ZLIB_INCLUDE_DIRS})
-        target_compile_definitions(libnetdata PUBLIC ${ZLIB_CFLAGS_OTHER})
-        target_link_libraries(libnetdata PUBLIC ${ZLIB_LDFLAGS})
-endif()
+netdata_add_required_libraries()
 
 # lz4 - try to find a version that is compatible with streaming compression
 # otherwise pick whichever one we can find to support dbengine but don't set
@@ -1574,23 +1571,6 @@ if(LIBBROTLI_FOUND)
         target_compile_definitions(libnetdata PUBLIC ${LIBBROTLI_CFLAGS_OTHER})
         target_link_libraries(libnetdata PUBLIC ${LIBBROTLI_LDFLAGS})
 endif()
-
-# uuid
-if(MACOS)
-        # UUID functionality is part of the system libraries here, so no extra
-        # stuff needed.
-else()
-        pkg_check_modules(UUID REQUIRED uuid)
-        target_include_directories(libnetdata BEFORE PUBLIC ${UUID_INCLUDE_DIRS})
-        target_compile_definitions(libnetdata PUBLIC ${UUID_CFLAGS_OTHER})
-        target_link_libraries(libnetdata PUBLIC ${UUID_LDFLAGS})
-endif()
-
-# uv
-pkg_check_modules(LIBUV REQUIRED libuv)
-target_include_directories(libnetdata BEFORE PUBLIC ${LIBUV_INCLUDE_DIRS})
-target_compile_definitions(libnetdata PUBLIC ${LIBUV_CFLAGS_OTHER})
-target_link_libraries(libnetdata PUBLIC ${LIBUV_LDFLAGS})
 
 # crypto
 target_include_directories(libnetdata BEFORE PUBLIC ${CRYPTO_INCLUDE_DIRS})
