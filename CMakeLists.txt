@@ -188,10 +188,21 @@ if(NEED_PROTOBUF)
 endif()
 
 #
-# handling of extra compiler flags
+# Include custom modules
 #
 
 include(NetdataCompilerFlags)
+include(NetdataRequiredLibs)
+include(NetdataTLS)
+include(NetdataYAML)
+
+if(LINUX)
+        include(DetectSystemd)
+endif()
+
+#
+# handling of extra compiler flags
+#
 
 # Disable hardening for debug builds by default.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -250,23 +261,21 @@ else()
 endif()
 
 #
-# Required libraries
+# checks from custom modules
+#
+# ordering is important here, mandatory components should be checked first and
+# ordered based on what is most likely to fail, followed by optional
+# components that are only handled via CMake options, and then things that are
+# truly optional and only auto-detected
 #
 
-include(NetdataRequiredLibs)
 netdata_check_required_libraries()
-
-#
-# Custom modules
-#
-
-include(NetdataYAML)
-
-#
-# Checks from custom modules
-#
-
+netdata_check_tls_libraries()
 netdata_detect_libyaml()
+
+if(LINUX)
+        netdata_detect_systemd()
+endif()
 
 #
 # check include files
@@ -453,11 +462,6 @@ int my_function() {
 if(FREEBSD OR MACOS)
         set(HAVE_BUILTIN_ATOMICS True)
 endif()
-
-# openssl/crypto
-
-include(NetdataTLS)
-netdata_check_tls_libraries()
 
 #
 # figure out if we need protoc/protobuf
@@ -1430,11 +1434,6 @@ set_source_files_properties(JudyLTables.c PROPERTIES COMPILE_OPTIONS "-I${CMAKE_
 #
 # build libnetdata
 #
-
-if(LINUX)
-        include(NetdataDetectSystemd)
-        detect_systemd()
-endif()
 
 add_library(libnetdata STATIC ${LIBNETDATA_FILES})
 

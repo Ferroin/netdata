@@ -3,7 +3,9 @@
 # Copyright (c) 2024 Netdata Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-macro(detect_systemd)
+include(CheckSymbolExists)
+
+macro(netdata_detect_systemd)
    find_library(SYSTEMD_LIBRARY NAMES systemd)
 
    set(ENABLE_DSYSTEMD_DBUS NO)
