@@ -257,27 +257,6 @@ include(NetdataRequiredLibs)
 netdata_check_required_libraries()
 
 #
-# Libm
-#
-
-# checks link with cmake required libs
-cmake_policy(SET CMP0075 NEW)
-
-include(CheckFunctionExists)
-
-check_function_exists(log10 HAVE_LOG10)
-if(NOT HAVE_LOG10)
-        unset(HAVE_LOG10 CACHE)
-        list(APPEND CMAKE_REQUIRED_LIBRARIES m)
-        check_function_exists(log10 HAVE_LOG10)
-        if(HAVE_LOG10)
-                set(LINK_LIBM True CACHE BOOL "" FORCE)
-        else()
-                message(FATAL_ERROR "Can not use log10 with/without libm.")
-        endif()
-endif()
-
-#
 # Custom modules
 #
 
