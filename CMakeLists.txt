@@ -177,31 +177,9 @@ else()
         option(DISABLE_HARDENING "disable adding extra compiler flags for hardening" FALSE)
 endif()
 
-set(EXTRA_HARDENING_C_FLAGS "")
-set(EXTRA_HARDENING_CXX_FLAGS "")
-
-set(EXTRA_OPT_C_FLAGS "")
-set(EXTRA_OPT_CXX_FLAGS "")
-
-if(NOT ${DISABLE_HARDENING})
-        add_double_extra_compiler_flag("stack-protector" "-fstack-protector-strong" "-fstack-protector" EXTRA_HARDENING)
-        add_double_extra_compiler_flag("_FORTIFY_SOURCE" "-D_FORTIFY_SOURCE=3" "-D_FORTIFY_SOURCE=2" EXTRA_HARDENING)
-        add_simple_extra_compiler_flag("stack-clash-protection" "-fstack-clash-protection" EXTRA_HARDENING)
-        add_simple_extra_compiler_flag("-fcf-protection" "-fcf-protection=full" EXTRA_HARDENING)
-        add_simple_extra_compiler_flag("branch-protection" "-mbranch-protection=standard" EXTRA_HARDENING)
-endif()
-
-foreach(FLAG function-sections data-sections)
-        add_simple_extra_compiler_flag("${FLAG}" "-f${FLAG}" EXTRA_OPT)
-endforeach()
-
-add_simple_extra_compiler_flag("-Wbuiltin-macro-redefined" "-Wno-builtin-macro-redefined" EXTRA_OPT)
-
-foreach(RELTYP RELEASE DEBUG RELWITHDEBINFO MINSIZEREL)
-        foreach(L C CXX)
-                set(CMAKE_${L}_FLAGS_${RELTYP} "${CMAKE_${L}_FLAGS_${RELTYP}} ${EXTRA_HARDENING_C_FLAGS} ${EXTRA_OPT_C_FLAGS}")
-        endforeach()
-endforeach()
+netdata_add_extra_general_flags()
+netdata_add_extra_hardening_flags()
+netdata_add_extra_optimization_flags()
 
 #
 # detect OS
