@@ -142,42 +142,6 @@ if(ENABLE_PLUGIN_GO)
     find_package(Go "${MIN_GO_VERSION}" REQUIRED)
 endif()
 
-if(ENABLE_SENTRY)
-        include(FetchContent)
-
-        # ignore debhelper
-        set(FETCHCONTENT_FULLY_DISCONNECTED Off)
-
-        set(SENTRY_VERSION 0.6.6)
-        set(SENTRY_BACKEND "breakpad")
-        set(SENTRY_BUILD_SHARED_LIBS OFF)
-
-        FetchContent_Declare(
-                sentry
-                URL https://github.com/getsentry/sentry-native/releases/download/${SENTRY_VERSION}/sentry-native.zip
-                URL_HASH SHA256=7a98467c0b2571380a3afc5e681cb13aa406a709529be12d74610b0015ccde0c
-        )
-        FetchContent_MakeAvailable(sentry)
-endif()
-
-if(ENABLE_WEBRTC)
-        include(FetchContent)
-
-        # ignore debhelper
-        set(FETCHCONTENT_FULLY_DISCONNECTED Off)
-
-        set(PREFER_SYSTEM_LIB True)
-        set(NO_MEDIA True)
-        set(NO_WEBSOCKET True)
-
-        set(HAVE_LIBDATACHANNEL True)
-
-        FetchContent_Declare(libdatachannel
-            GIT_REPOSITORY https://github.com/paullouisageneau/libdatachannel.git
-            GIT_TAG v0.20.1
-        )
-        FetchContent_MakeAvailable(libdatachannel)
-endif()
 
 if(NEED_PROTOBUF)
         include(NetdataProtobuf)
@@ -193,7 +157,9 @@ endif()
 
 include(NetdataCompilerFlags)
 include(NetdataRequiredLibs)
+include(NetdataSentry)
 include(NetdataTLS)
+include(NetdataVendorLibDataChannel)
 include(NetdataYAML)
 
 if(LINUX)
@@ -259,6 +225,13 @@ else()
         set(COMPILED_FOR_LINUX True)
         add_definitions(-D_GNU_SOURCE)
 endif()
+
+#
+# vendoring from custom modules
+#
+
+netdata_vendor_sentry_native()
+netdata_vendor_libdatachannel()
 
 #
 # checks from custom modules
@@ -1259,11 +1232,7 @@ if(LINUX)
                 ${TC_PLUGIN_FILES}
         )
 
-        if(ENABLE_SENTRY)
-            list(APPEND NETDATA_FILES
-                    src/daemon/sentry-native/sentry-native.c
-                    src/daemon/sentry-native/sentry-native.h)
-        endif()
+        netdata_add_sentry_files(NETDATA_FILES)
 elseif(MACOS)
         list(APPEND NETDATA_FILES
                 src/daemon/static_threads_macos.c
