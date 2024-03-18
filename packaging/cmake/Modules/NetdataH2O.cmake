@@ -115,7 +115,7 @@ function(netdata_add_h2o_library)
         netdata_add_tls_libraries(h2o PRIVATE)
 endfunction()
 
-function(add_h2o_to_target _target)
+function(netdata_add_h2o_to_target _target)
         target_sources(${_target} PRIVATE
                 src/web/server/h2o/http_server.c
                 src/web/server/h2o/http_server.h

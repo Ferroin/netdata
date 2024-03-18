@@ -179,7 +179,11 @@ else()
 endif()
 
 netdata_add_extra_general_flags()
-netdata_add_extra_hardening_flags()
+
+if(NOT DISABLE_HARDENING)
+        netdata_add_extra_hardening_flags()
+endif()
+
 netdata_add_extra_optimization_flags()
 
 #
@@ -209,8 +213,13 @@ endif()
 # vendoring from custom modules
 #
 
-netdata_vendor_sentry_native()
-netdata_vendor_libdatachannel()
+if(ENABLE_SENTRY)
+        netdata_vendor_sentry_native()
+endif()
+
+if(ENABLE_WEBRTC)
+        netdata_vendor_libdatachannel()
+endif()
 
 #
 # checks from custom modules
@@ -1115,7 +1124,9 @@ if(LINUX)
                 ${TC_PLUGIN_FILES}
         )
 
-        netdata_add_sentry_files(NETDATA_FILES)
+        if(ENABLE_SENTRY)
+                netdata_add_sentry_files(NETDATA_FILES)
+        endif()
 elseif(MACOS)
         list(APPEND NETDATA_FILES
                 src/daemon/static_threads_macos.c
@@ -1799,7 +1810,7 @@ if(NEED_PROTOBUF)
 endif()
 
 if(ENABLE_H2O)
-        add_h2o_to_target(netdata)
+        netdata_add_h2o_to_target(netdata)
 endif()
 
 #
