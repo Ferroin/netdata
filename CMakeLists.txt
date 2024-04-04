@@ -1152,7 +1152,7 @@ endif()
 
 netdata_add_libyaml_to_target(libnetdata)
 
-netdata_add_required_libraries()
+netdata_add_required_libraries_to_target(libnetdata)
 
 # lz4 - try to find a version that is compatible with streaming compression
 # otherwise pick whichever one we can find to support dbengine but don't set
@@ -1186,8 +1186,8 @@ if(LIBBROTLI_FOUND)
         target_link_libraries(libnetdata PUBLIC ${LIBBROTLI_LDFLAGS})
 endif()
 
-netdata_add_crypto_libraries(libnetdata PUBLIC)
-netdata_add_tls_libraries(libnetdata PUBLIC)
+netdata_add_crypto_libraries_to_target(libnetdata PUBLIC)
+netdata_add_tls_libraries_to_target(libnetdata PUBLIC)
 
 # mnl
 if(NOT MACOS)
@@ -1630,7 +1630,7 @@ target_link_libraries(netdata PRIVATE
 )
 
 if(NEED_PROTOBUF)
-        netdata_add_protobuf(netdata)
+        netdata_add_protobuf_to_target(netdata)
 endif()
 
 if(ENABLE_H2O)

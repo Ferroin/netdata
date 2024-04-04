@@ -112,7 +112,8 @@ function(netdata_add_h2o_library)
 
         target_compile_definitions(h2o PUBLIC H2O_USE_LIBUV=0)
 
-        netdata_add_tls_libraries(h2o PRIVATE)
+        netdata_check_tls_libraries()
+        netdata_add_tls_libraries_to_target(h2o PRIVATE)
 endfunction()
 
 function(netdata_add_h2o_to_target _target)

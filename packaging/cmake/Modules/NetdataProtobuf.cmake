@@ -218,7 +218,7 @@ function(netdata_protoc_generate_cpp INC_DIR OUT_DIR SRCS HDRS)
 endfunction()
 
 # Add protobuf to a specified target.
-function(netdata_add_protobuf _target)
+function(netdata_add_protobuf_to_target _target)
         target_compile_definitions(${_target} PRIVATE ${NETDATA_PROTOBUF_CFLAGS_OTHER})
         target_include_directories(${_target} PRIVATE ${NETDATA_PROTOBUF_INCLUDE_DIRS})
         target_link_libraries(${_target} PRIVATE ${NETDATA_PROTOBUF_LIBS})
