@@ -129,6 +129,7 @@ option(ENABLE_DBENGINE "Enable dbengine metrics storage" True)
 # Data collection plugins
 option(ENABLE_PLUGIN_APPS "Enable per-process resource usage monitoring" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_CGROUP_NETWORK "Enable Linux CGroup network usage monitoring" ${DEFAULT_FEATURE_STATE})
+option(ENABLE_PLUGIN_CHARTSD "Enable metric collectors written in Bash" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_CUPS "Enable CUPS monitoring" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_DEBUGFS "Enable Linux DebugFS metric collection" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_EBPF "Enable Linux eBPF metric collection" ${DEFAULT_FEATURE_STATE})
@@ -136,11 +137,13 @@ cmake_dependent_option(ENABLE_LEGACY_EBPF_PROGRAMS "Enable eBPF programs for ker
 mark_as_advanced(ENABLE_LEGACY_EBPF_PROGRAMS)
 option(ENABLE_PLUGIN_FREEIPMI "Enable IPMI monitoring" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_GO "Enable metric collectors written in Go" ${DEFAULT_FEATURE_STATE})
+option(ENABLE_PLUGIN_IOPING "Enable disk I/O latency monitoring with ioping" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_LOCAL_LISTENERS "Enable local listening socket tracking (including service auto-discovery support)" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_LOGS_MANAGEMENT "Enable log collection and monitoring based on Fluent Bit" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_NETWORK_VIEWER "Enable network viewer functionality" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_NFACCT "Enable Linux NFACCT metric collection" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_PERF "Enable Linux performance counter monitoring" ${DEFAULT_FEATURE_STATE})
+option(ENABLE_PLUGIN_PYTHON "Enable metric collectors written in Python" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_SLABINFO "Enable Linux kernel SLAB allocator monitoring" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_SYSTEMD_JOURNAL "Enable systemd journal log collection" ${DEFAULT_FEATURE_STATE})
 option(ENABLE_PLUGIN_XENSTAT "Enable Xen domain monitoring" ${DEFAULT_FEATURE_STATE})
@@ -2305,7 +2308,6 @@ install(DIRECTORY COMPONENT netdata DESTINATION etc/netdata)
 install(DIRECTORY COMPONENT netdata DESTINATION etc/netdata/custom-plugins.d)
 install(DIRECTORY COMPONENT netdata DESTINATION etc/netdata/go.d)
 install(DIRECTORY COMPONENT netdata DESTINATION etc/netdata/health.d)
-install(DIRECTORY COMPONENT netdata DESTINATION etc/netdata/python.d)
 install(DIRECTORY COMPONENT netdata DESTINATION etc/netdata/ssl)
 install(DIRECTORY COMPONENT netdata DESTINATION etc/netdata/statsd.d)
 install(DIRECTORY COMPONENT netdata DESTINATION usr/lib/netdata/conf.d)
@@ -2546,13 +2548,11 @@ if(BUILD_FOR_PACKAGING)
                 packaging/cmake/control/netdata/etc/default/netdata
                 COMPONENT netdata
                 DESTINATION etc/default)
-endif()
 
-if(BUILD_FOR_PACKAGING)
-install(PROGRAMS
-        packaging/cmake/control/netdata/etc/init.d/netdata
-        COMPONENT netdata
-        DESTINATION etc/init.d)
+        install(PROGRAMS
+                packaging/cmake/control/netdata/etc/init.d/netdata
+                COMPONENT netdata
+                DESTINATION etc/init.d)
 endif()
 
 install(PROGRAMS
@@ -2560,9 +2560,6 @@ install(PROGRAMS
         COMPONENT netdata
         DESTINATION usr/libexec/netdata)
 
-#
-# TODO: check the following files for correct substitutions
-#
 configure_file(src/daemon/anonymous-statistics.sh.in src/daemon/anonymous-statistics.sh @ONLY)
 install(PROGRAMS
         ${CMAKE_BINARY_DIR}/src/daemon/anonymous-statistics.sh
@@ -2631,55 +2628,51 @@ install(FILES
 # charts.d plugin
 #
 
-install(DIRECTORY COMPONENT plugin-chartsd DESTINATION etc/netdata/charts.d)
+if(ENABLE_PLUGIN_CHARTSD)
+    install(DIRECTORY COMPONENT plugin-chartsd DESTINATION etc/netdata/charts.d)
 
-configure_file(src/collectors/charts.d.plugin/charts.d.plugin.in src/collectors/charts.d.plugin/charts.d.plugin @ONLY)
-install(PROGRAMS
-        ${CMAKE_BINARY_DIR}/src/collectors/charts.d.plugin/charts.d.plugin
-        COMPONENT plugin-chartsd
-        DESTINATION usr/libexec/netdata/plugins.d)
+    configure_file(src/collectors/charts.d.plugin/charts.d.plugin.in src/collectors/charts.d.plugin/charts.d.plugin @ONLY)
+    install(PROGRAMS
+            ${CMAKE_BINARY_DIR}/src/collectors/charts.d.plugin/charts.d.plugin
+            COMPONENT plugin-chartsd
+            DESTINATION usr/libexec/netdata/plugins.d)
 
-install(PROGRAMS
-        src/collectors/charts.d.plugin/charts.d.dryrun-helper.sh
-        COMPONENT plugin-chartsd
-        DESTINATION usr/libexec/netdata/plugins.d)
+    install(PROGRAMS
+            src/collectors/charts.d.plugin/charts.d.dryrun-helper.sh
+            COMPONENT plugin-chartsd
+            DESTINATION usr/libexec/netdata/plugins.d)
 
-# loopsleepms is used by the tc.plugin -> ship it in the netdata component
-install(FILES
-        src/collectors/charts.d.plugin/loopsleepms.sh.inc
-        COMPONENT netdata
-        DESTINATION usr/libexec/netdata/plugins.d)
+    install(FILES
+            src/collectors/charts.d.plugin/charts.d.conf
+            COMPONENT plugin-chartsd
+            DESTINATION usr/lib/netdata/conf.d)
 
-install(FILES
-        src/collectors/charts.d.plugin/charts.d.conf
-        COMPONENT plugin-chartsd
-        DESTINATION usr/lib/netdata/conf.d)
+    install(PROGRAMS
+            src/collectors/charts.d.plugin/ap/ap.chart.sh
+            src/collectors/charts.d.plugin/apcupsd/apcupsd.chart.sh
+            src/collectors/charts.d.plugin/example/example.chart.sh
+            src/collectors/charts.d.plugin/libreswan/libreswan.chart.sh
+            src/collectors/charts.d.plugin/opensips/opensips.chart.sh
+            src/collectors/charts.d.plugin/sensors/sensors.chart.sh
+            COMPONENT plugin-chartsd
+            DESTINATION usr/libexec/netdata/charts.d)
 
-install(PROGRAMS
-        src/collectors/charts.d.plugin/ap/ap.chart.sh
-        src/collectors/charts.d.plugin/apcupsd/apcupsd.chart.sh
-        src/collectors/charts.d.plugin/example/example.chart.sh
-        src/collectors/charts.d.plugin/libreswan/libreswan.chart.sh
-        src/collectors/charts.d.plugin/opensips/opensips.chart.sh
-        src/collectors/charts.d.plugin/sensors/sensors.chart.sh
-        COMPONENT plugin-chartsd
-        DESTINATION usr/libexec/netdata/charts.d)
+    install(FILES
+            src/collectors/charts.d.plugin/ap/ap.conf
+            src/collectors/charts.d.plugin/apcupsd/apcupsd.conf
+            src/collectors/charts.d.plugin/example/example.conf
+            src/collectors/charts.d.plugin/libreswan/libreswan.conf
+            src/collectors/charts.d.plugin/opensips/opensips.conf
+            src/collectors/charts.d.plugin/sensors/sensors.conf
+            COMPONENT plugin-chartsd
+            DESTINATION usr/lib/netdata/conf.d/charts.d)
 
-install(FILES
-        src/collectors/charts.d.plugin/ap/ap.conf
-        src/collectors/charts.d.plugin/apcupsd/apcupsd.conf
-        src/collectors/charts.d.plugin/example/example.conf
-        src/collectors/charts.d.plugin/libreswan/libreswan.conf
-        src/collectors/charts.d.plugin/opensips/opensips.conf
-        src/collectors/charts.d.plugin/sensors/sensors.conf
-        COMPONENT plugin-chartsd
-        DESTINATION usr/lib/netdata/conf.d/charts.d)
-
-if(BUILD_FOR_PACKAGING)
-        install(FILES
-                packaging/cmake/control/copyright
-                COMPONENT plugin-chartsd
-                DESTINATION usr/share/doc/netdata-plugin-chartsd)
+    if(BUILD_FOR_PACKAGING)
+            install(FILES
+                    packaging/cmake/control/copyright
+                    COMPONENT plugin-chartsd
+                    DESTINATION usr/share/doc/netdata-plugin-chartsd)
+    endif()
 endif()
 
 #
@@ -2689,6 +2682,11 @@ endif()
 configure_file(src/collectors/tc.plugin/tc-qos-helper.sh.in src/collectors/tc.plugin/tc-qos-helper.sh @ONLY)
 install(PROGRAMS
         ${CMAKE_BINARY_DIR}/src/collectors/tc.plugin/tc-qos-helper.sh
+        COMPONENT netdata
+        DESTINATION usr/libexec/netdata/plugins.d)
+
+install(FILES
+        src/collectors/charts.d.plugin/loopsleepms.sh.inc
         COMPONENT netdata
         DESTINATION usr/libexec/netdata/plugins.d)
 
@@ -2703,124 +2701,132 @@ install(FILES
 # python.d plugin
 #
 
-configure_file(src/collectors/python.d.plugin/python.d.plugin.in src/collectors/python.d.plugin/python.d.plugin @ONLY)
-install(PROGRAMS ${CMAKE_BINARY_DIR}/src/collectors/python.d.plugin/python.d.plugin
-        COMPONENT plugin-pythond
-        DESTINATION usr/libexec/netdata/plugins.d)
+if(ENABLE_PLUGIN_PYTHON)
+    configure_file(src/collectors/python.d.plugin/python.d.plugin.in src/collectors/python.d.plugin/python.d.plugin @ONLY)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/src/collectors/python.d.plugin/python.d.plugin
+            COMPONENT plugin-pythond
+            DESTINATION usr/libexec/netdata/plugins.d)
 
-install(DIRECTORY src/collectors/python.d.plugin/python_modules
-        COMPONENT plugin-pythond
-        DESTINATION usr/libexec/netdata/python.d)
+    install(DIRECTORY src/collectors/python.d.plugin/python_modules
+            COMPONENT plugin-pythond
+            DESTINATION usr/libexec/netdata/python.d)
 
-install(FILES src/collectors/python.d.plugin/python.d.conf
-        COMPONENT plugin-pythond
-        DESTINATION usr/lib/netdata/conf.d)
+    install(DIRECTORY
+            COMPONENT plugin-pythond
+            DESTINATION etc/netdata/python.d)
 
-install(FILES
-        src/collectors/python.d.plugin/alarms/alarms.conf
-        src/collectors/python.d.plugin/am2320/am2320.conf
-        src/collectors/python.d.plugin/anomalies/anomalies.conf
-        src/collectors/python.d.plugin/beanstalk/beanstalk.conf
-        src/collectors/python.d.plugin/bind_rndc/bind_rndc.conf
-        src/collectors/python.d.plugin/boinc/boinc.conf
-        src/collectors/python.d.plugin/ceph/ceph.conf
-        src/collectors/python.d.plugin/changefinder/changefinder.conf
-        src/collectors/python.d.plugin/dovecot/dovecot.conf
-        src/collectors/python.d.plugin/example/example.conf
-        src/collectors/python.d.plugin/exim/exim.conf
-        src/collectors/python.d.plugin/gearman/gearman.conf
-        src/collectors/python.d.plugin/go_expvar/go_expvar.conf
-        src/collectors/python.d.plugin/haproxy/haproxy.conf
-        src/collectors/python.d.plugin/hpssa/hpssa.conf
-        src/collectors/python.d.plugin/icecast/icecast.conf
-        src/collectors/python.d.plugin/ipfs/ipfs.conf
-        src/collectors/python.d.plugin/litespeed/litespeed.conf
-        src/collectors/python.d.plugin/memcached/memcached.conf
-        src/collectors/python.d.plugin/monit/monit.conf
-        src/collectors/python.d.plugin/nsd/nsd.conf
-        src/collectors/python.d.plugin/nvidia_smi/nvidia_smi.conf
-        src/collectors/python.d.plugin/openldap/openldap.conf
-        src/collectors/python.d.plugin/oracledb/oracledb.conf
-        src/collectors/python.d.plugin/pandas/pandas.conf
-        src/collectors/python.d.plugin/postfix/postfix.conf
-        src/collectors/python.d.plugin/puppet/puppet.conf
-        src/collectors/python.d.plugin/rethinkdbs/rethinkdbs.conf
-        src/collectors/python.d.plugin/retroshare/retroshare.conf
-        src/collectors/python.d.plugin/riakkv/riakkv.conf
-        src/collectors/python.d.plugin/samba/samba.conf
-        src/collectors/python.d.plugin/smartd_log/smartd_log.conf
-        src/collectors/python.d.plugin/spigotmc/spigotmc.conf
-        src/collectors/python.d.plugin/squid/squid.conf
-        src/collectors/python.d.plugin/tomcat/tomcat.conf
-        src/collectors/python.d.plugin/tor/tor.conf
-        src/collectors/python.d.plugin/traefik/traefik.conf
-        src/collectors/python.d.plugin/uwsgi/uwsgi.conf
-        src/collectors/python.d.plugin/varnish/varnish.conf
-        src/collectors/python.d.plugin/w1sensor/w1sensor.conf
-        src/collectors/python.d.plugin/zscores/zscores.conf
-        COMPONENT plugin-pythond
-        DESTINATION usr/lib/netdata/conf.d/python.d)
+    install(FILES src/collectors/python.d.plugin/python.d.conf
+            COMPONENT plugin-pythond
+            DESTINATION usr/lib/netdata/conf.d)
 
-install(FILES
-        src/collectors/python.d.plugin/alarms/alarms.chart.py
-        src/collectors/python.d.plugin/am2320/am2320.chart.py
-        src/collectors/python.d.plugin/anomalies/anomalies.chart.py
-        src/collectors/python.d.plugin/beanstalk/beanstalk.chart.py
-        src/collectors/python.d.plugin/bind_rndc/bind_rndc.chart.py
-        src/collectors/python.d.plugin/boinc/boinc.chart.py
-        src/collectors/python.d.plugin/ceph/ceph.chart.py
-        src/collectors/python.d.plugin/changefinder/changefinder.chart.py
-        src/collectors/python.d.plugin/dovecot/dovecot.chart.py
-        src/collectors/python.d.plugin/example/example.chart.py
-        src/collectors/python.d.plugin/exim/exim.chart.py
-        src/collectors/python.d.plugin/gearman/gearman.chart.py
-        src/collectors/python.d.plugin/go_expvar/go_expvar.chart.py
-        src/collectors/python.d.plugin/haproxy/haproxy.chart.py
-        src/collectors/python.d.plugin/hpssa/hpssa.chart.py
-        src/collectors/python.d.plugin/icecast/icecast.chart.py
-        src/collectors/python.d.plugin/ipfs/ipfs.chart.py
-        src/collectors/python.d.plugin/litespeed/litespeed.chart.py
-        src/collectors/python.d.plugin/memcached/memcached.chart.py
-        src/collectors/python.d.plugin/monit/monit.chart.py
-        src/collectors/python.d.plugin/nsd/nsd.chart.py
-        src/collectors/python.d.plugin/nvidia_smi/nvidia_smi.chart.py
-        src/collectors/python.d.plugin/openldap/openldap.chart.py
-        src/collectors/python.d.plugin/oracledb/oracledb.chart.py
-        src/collectors/python.d.plugin/pandas/pandas.chart.py
-        src/collectors/python.d.plugin/postfix/postfix.chart.py
-        src/collectors/python.d.plugin/puppet/puppet.chart.py
-        src/collectors/python.d.plugin/rethinkdbs/rethinkdbs.chart.py
-        src/collectors/python.d.plugin/retroshare/retroshare.chart.py
-        src/collectors/python.d.plugin/riakkv/riakkv.chart.py
-        src/collectors/python.d.plugin/samba/samba.chart.py
-        src/collectors/python.d.plugin/smartd_log/smartd_log.chart.py
-        src/collectors/python.d.plugin/spigotmc/spigotmc.chart.py
-        src/collectors/python.d.plugin/squid/squid.chart.py
-        src/collectors/python.d.plugin/tomcat/tomcat.chart.py
-        src/collectors/python.d.plugin/tor/tor.chart.py
-        src/collectors/python.d.plugin/traefik/traefik.chart.py
-        src/collectors/python.d.plugin/uwsgi/uwsgi.chart.py
-        src/collectors/python.d.plugin/varnish/varnish.chart.py
-        src/collectors/python.d.plugin/w1sensor/w1sensor.chart.py
-        src/collectors/python.d.plugin/zscores/zscores.chart.py
-        COMPONENT plugin-pythond
-        DESTINATION usr/libexec/netdata/python.d)
+    install(FILES
+            src/collectors/python.d.plugin/alarms/alarms.conf
+            src/collectors/python.d.plugin/am2320/am2320.conf
+            src/collectors/python.d.plugin/anomalies/anomalies.conf
+            src/collectors/python.d.plugin/beanstalk/beanstalk.conf
+            src/collectors/python.d.plugin/bind_rndc/bind_rndc.conf
+            src/collectors/python.d.plugin/boinc/boinc.conf
+            src/collectors/python.d.plugin/ceph/ceph.conf
+            src/collectors/python.d.plugin/changefinder/changefinder.conf
+            src/collectors/python.d.plugin/dovecot/dovecot.conf
+            src/collectors/python.d.plugin/example/example.conf
+            src/collectors/python.d.plugin/exim/exim.conf
+            src/collectors/python.d.plugin/gearman/gearman.conf
+            src/collectors/python.d.plugin/go_expvar/go_expvar.conf
+            src/collectors/python.d.plugin/haproxy/haproxy.conf
+            src/collectors/python.d.plugin/hpssa/hpssa.conf
+            src/collectors/python.d.plugin/icecast/icecast.conf
+            src/collectors/python.d.plugin/ipfs/ipfs.conf
+            src/collectors/python.d.plugin/litespeed/litespeed.conf
+            src/collectors/python.d.plugin/memcached/memcached.conf
+            src/collectors/python.d.plugin/monit/monit.conf
+            src/collectors/python.d.plugin/nsd/nsd.conf
+            src/collectors/python.d.plugin/nvidia_smi/nvidia_smi.conf
+            src/collectors/python.d.plugin/openldap/openldap.conf
+            src/collectors/python.d.plugin/oracledb/oracledb.conf
+            src/collectors/python.d.plugin/pandas/pandas.conf
+            src/collectors/python.d.plugin/postfix/postfix.conf
+            src/collectors/python.d.plugin/puppet/puppet.conf
+            src/collectors/python.d.plugin/rethinkdbs/rethinkdbs.conf
+            src/collectors/python.d.plugin/retroshare/retroshare.conf
+            src/collectors/python.d.plugin/riakkv/riakkv.conf
+            src/collectors/python.d.plugin/samba/samba.conf
+            src/collectors/python.d.plugin/smartd_log/smartd_log.conf
+            src/collectors/python.d.plugin/spigotmc/spigotmc.conf
+            src/collectors/python.d.plugin/squid/squid.conf
+            src/collectors/python.d.plugin/tomcat/tomcat.conf
+            src/collectors/python.d.plugin/tor/tor.conf
+            src/collectors/python.d.plugin/traefik/traefik.conf
+            src/collectors/python.d.plugin/uwsgi/uwsgi.conf
+            src/collectors/python.d.plugin/varnish/varnish.conf
+            src/collectors/python.d.plugin/w1sensor/w1sensor.conf
+            src/collectors/python.d.plugin/zscores/zscores.conf
+            COMPONENT plugin-pythond
+            DESTINATION usr/lib/netdata/conf.d/python.d)
 
-if(BUILD_FOR_PACKAGING)
-        install(FILES
-                packaging/cmake/control/copyright
-                COMPONENT plugin-pythond
-                DESTINATION usr/share/doc/netdata-plugin-pythond)
+    install(FILES
+            src/collectors/python.d.plugin/alarms/alarms.chart.py
+            src/collectors/python.d.plugin/am2320/am2320.chart.py
+            src/collectors/python.d.plugin/anomalies/anomalies.chart.py
+            src/collectors/python.d.plugin/beanstalk/beanstalk.chart.py
+            src/collectors/python.d.plugin/bind_rndc/bind_rndc.chart.py
+            src/collectors/python.d.plugin/boinc/boinc.chart.py
+            src/collectors/python.d.plugin/ceph/ceph.chart.py
+            src/collectors/python.d.plugin/changefinder/changefinder.chart.py
+            src/collectors/python.d.plugin/dovecot/dovecot.chart.py
+            src/collectors/python.d.plugin/example/example.chart.py
+            src/collectors/python.d.plugin/exim/exim.chart.py
+            src/collectors/python.d.plugin/gearman/gearman.chart.py
+            src/collectors/python.d.plugin/go_expvar/go_expvar.chart.py
+            src/collectors/python.d.plugin/haproxy/haproxy.chart.py
+            src/collectors/python.d.plugin/hpssa/hpssa.chart.py
+            src/collectors/python.d.plugin/icecast/icecast.chart.py
+            src/collectors/python.d.plugin/ipfs/ipfs.chart.py
+            src/collectors/python.d.plugin/litespeed/litespeed.chart.py
+            src/collectors/python.d.plugin/memcached/memcached.chart.py
+            src/collectors/python.d.plugin/monit/monit.chart.py
+            src/collectors/python.d.plugin/nsd/nsd.chart.py
+            src/collectors/python.d.plugin/nvidia_smi/nvidia_smi.chart.py
+            src/collectors/python.d.plugin/openldap/openldap.chart.py
+            src/collectors/python.d.plugin/oracledb/oracledb.chart.py
+            src/collectors/python.d.plugin/pandas/pandas.chart.py
+            src/collectors/python.d.plugin/postfix/postfix.chart.py
+            src/collectors/python.d.plugin/puppet/puppet.chart.py
+            src/collectors/python.d.plugin/rethinkdbs/rethinkdbs.chart.py
+            src/collectors/python.d.plugin/retroshare/retroshare.chart.py
+            src/collectors/python.d.plugin/riakkv/riakkv.chart.py
+            src/collectors/python.d.plugin/samba/samba.chart.py
+            src/collectors/python.d.plugin/smartd_log/smartd_log.chart.py
+            src/collectors/python.d.plugin/spigotmc/spigotmc.chart.py
+            src/collectors/python.d.plugin/squid/squid.chart.py
+            src/collectors/python.d.plugin/tomcat/tomcat.chart.py
+            src/collectors/python.d.plugin/tor/tor.chart.py
+            src/collectors/python.d.plugin/traefik/traefik.chart.py
+            src/collectors/python.d.plugin/uwsgi/uwsgi.chart.py
+            src/collectors/python.d.plugin/varnish/varnish.chart.py
+            src/collectors/python.d.plugin/w1sensor/w1sensor.chart.py
+            src/collectors/python.d.plugin/zscores/zscores.chart.py
+            COMPONENT plugin-pythond
+            DESTINATION usr/libexec/netdata/python.d)
+
+    if(BUILD_FOR_PACKAGING)
+            install(FILES
+                    packaging/cmake/control/copyright
+                    COMPONENT plugin-pythond
+                    DESTINATION usr/share/doc/netdata-plugin-pythond)
+    endif()
 endif()
 
 #
 # ioping.plugin
 #
 
-configure_file(src/collectors/ioping.plugin/ioping.plugin.in src/collectors/ioping.plugin/ioping.plugin @ONLY)
-install(PROGRAMS ${CMAKE_BINARY_DIR}/src/collectors/ioping.plugin/ioping.plugin
-        COMPONENT netdata
-        DESTINATION usr/libexec/netdata/plugins.d)
+if(ENABLE_PLUGIN_IOPING)
+    configure_file(src/collectors/ioping.plugin/ioping.plugin.in src/collectors/ioping.plugin/ioping.plugin @ONLY)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/src/collectors/ioping.plugin/ioping.plugin
+            COMPONENT netdata
+            DESTINATION usr/libexec/netdata/plugins.d)
+endif()
 
 #
 # go.d.plugin

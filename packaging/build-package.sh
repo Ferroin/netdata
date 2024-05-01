@@ -34,13 +34,16 @@ add_cmake_option ENABLE_ML On
 
 add_cmake_option ENABLE_PLUGIN_APPS On
 add_cmake_option ENABLE_PLUGIN_CGROUP_NETWORK On
+add_cmake_option ENABLE_PLUGIN_CHARTSD On
 add_cmake_option ENABLE_PLUGIN_DEBUGFS On
 add_cmake_option ENABLE_PLUGIN_FREEIPMI On
 add_cmake_option ENABLE_PLUGIN_GO On
+add_cmake_option ENABLE_PLUGIN_IOPING On
 add_cmake_option ENABLE_PLUGIN_LOCAL_LISTENERS On
 add_cmake_option ENABLE_PLUGIN_LOGS_MANAGEMENT On
 add_cmake_option ENABLE_PLUGIN_NFACCT On
 add_cmake_option ENABLE_PLUGIN_PERF On
+add_cmake_option ENABLE_PLUGIN_PYTHON On
 add_cmake_option ENABLE_PLUGIN_SLABINFO On
 add_cmake_option ENABLE_PLUGIN_SYSTEMD_JOURNAL On
 
