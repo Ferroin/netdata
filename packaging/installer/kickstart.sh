@@ -966,54 +966,72 @@ uninstall() {
   fi
 }
 
+get_running_nd_path() {
+  ps ax -o 'pid=' -o 'comm=' -o 'command=' | awk '{ if ($2 == "netdata") print $3 }' | head -n 1
+}
+
 detect_existing_install() {
+  if [ -n "${ndprefix}" ]; then
+    return
+  fi
+
   set_tmpdir
 
   progress "Checking for existing installations of Netdata..."
   EXISTING_INSTALL_IS_NATIVE="0"
 
-  if [ -n "${INSTALL_PREFIX}" ]; then
-    searchpath="/opt/netdata/bin:${INSTALL_PREFIX}/bin:${INSTALL_PREFIX}/sbin:${INSTALL_PREFIX}/usr/bin:${INSTALL_PREFIX}/usr/sbin:${PATH}"
-    searchpath="${INSTALL_PREFIX}/netdata/bin:${INSTALL_PREFIX}/netdata/sbin:${INSTALL_PREFIX}/netdata/usr/bin:${INSTALL_PREFIX}/netdata/usr/sbin:${searchpath}"
-  else
-    searchpath="/opt/netdata/bin:${PATH}"
-  fi
-
-  while [ -n "${searchpath}" ]; do
-    _ndpath="$(PATH="${searchpath}" command -v netdata 2>/dev/null)"
-
-    if [ -n "${_ndpath}" ]; then
-      _ndpath="$(canonical_path "${_ndpath}")"
-    fi
-
-    if [ -z "${ndpath}" ] && [ -n "${_ndpath}" ]; then
-      ndpath="${_ndpath}"
-    elif [ -n "${_ndpath}" ] && [ "${ndpath}" != "${_ndpath}" ]; then
-      fatal "Multiple installs of Netdata agent detected (located at '${ndpath}' and '${_ndpath}'). Such a setup is not generally supported. If you are certain you want to operate on one of them despite this, use the '--install-prefix' option to specifiy the install you want to operate on." F0517
-    fi
-
-    if [ -n "${INSTALL_PREFIX}" ] && [ -n "${ndpath}" ]; then
-      break
-    elif [ -z "${_ndpath}" ]; then
-      break
-    elif echo "${searchpath}" | grep -v ':'; then
-      searchpath=""
-    else
-      searchpath="$(echo "${searchpath}" | cut -f 2- -d ':')"
-    fi
-  done
-
   if pkg_installed netdata; then
     ndprefix="/"
     EXISTING_INSTALL_IS_NATIVE="1"
-  elif [ -n "${ndpath}" ]; then
-    case "${ndpath}" in
-      */usr/bin/netdata|*/usr/sbin/netdata) ndprefix="$(dirname "$(dirname "$(dirname "${ndpath}")")")" ;;
-      *) ndprefix="$(dirname "$(dirname "${ndpath}")")" ;;
-    esac
+  else
+    if [ -n "${INSTALL_PREFIX}" ]; then
+      searchpath="/opt/netdata/bin:${INSTALL_PREFIX}/bin:${INSTALL_PREFIX}/sbin:${INSTALL_PREFIX}/usr/bin:${INSTALL_PREFIX}/usr/sbin:${PATH}"
+      searchpath="${INSTALL_PREFIX}/netdata/bin:${INSTALL_PREFIX}/netdata/sbin:${INSTALL_PREFIX}/netdata/usr/bin:${INSTALL_PREFIX}/netdata/usr/sbin:${searchpath}"
+    else
+      searchpath="/opt/netdata/bin:${PATH}"
+    fi
 
-    if echo "${ndprefix}" | grep -Eq '^/usr$'; then
-      ndprefix="$(dirname "${ndprefix}")"
+    while [ -n "${searchpath}" ]; do
+      _ndpath="$(PATH="${searchpath}" command -v netdata 2>/dev/null)"
+
+      if [ -n "${_ndpath}" ]; then
+        _ndpath="$(canonical_path "${_ndpath}")"
+      fi
+
+      if [ -z "${ndpath}" ] && [ -n "${_ndpath}" ]; then
+        ndpath="${_ndpath}"
+      elif [ -n "${_ndpath}" ] && [ "${ndpath}" != "${_ndpath}" ]; then
+        fatal "Multiple installs of Netdata agent detected (located at '${ndpath}' and '${_ndpath}'). Such a setup is not generally supported. If you are certain you want to operate on one of them despite this, use the '--install-prefix' option to specifiy the install you want to operate on." F0517
+      fi
+
+      if [ -n "${INSTALL_PREFIX}" ] && [ -n "${ndpath}" ]; then
+        break
+      elif [ -z "${_ndpath}" ]; then
+        break
+      elif echo "${searchpath}" | grep -v ':'; then
+        searchpath=""
+      else
+        searchpath="$(echo "${searchpath}" | cut -f 2- -d ':')"
+      fi
+    done
+
+    if [ -z "${ndpath}" ]; then
+      ndpath="$(get_running_nd_path)"
+
+      if [ -n "${ndpath}" ]; then
+        NETDATA_RUNNING=1
+      fi
+    fi
+
+    if [ -n "${ndpath}" ]; then
+      case "${ndpath}" in
+        */usr/bin/netdata|*/usr/sbin/netdata) ndprefix="$(dirname "$(dirname "$(dirname "${ndpath}")")")" ;;
+        *) ndprefix="$(dirname "$(dirname "${ndpath}")")" ;;
+      esac
+
+      if echo "${ndprefix}" | grep -Eq '^/usr$'; then
+        ndprefix="$(dirname "${ndprefix}")"
+      fi
     fi
   fi
 
@@ -1212,26 +1230,26 @@ check_claim_opts() {
 }
 
 is_netdata_running() {
-  if command -v pgrep > /dev/null 2>&1; then
+  if [ -n "${NETDATA_RUNNING}" ]; then
+    return 0
+  elif command -v pgrep > /dev/null 2>&1; then
     if pgrep netdata; then
       return 0
     else
       return 1
     fi
-  else
-    if [ -z "${INSTALL_PREFIX}" ]; then
-      NETDATACLI_PATH=/usr/sbin/netdatacli
-    elif [ "${INSTALL_PREFIX}" = "/opt/netdata" ]; then
-      NETDATACLI_PATH="/opt/netdata/bin/netdatacli"
-    else
-      NETDATACLI_PATH="${INSTALL_PREFIX}/netdata/usr/sbin/netdatacli"
-    fi
+  elif [ -n "$(get_running_nd_path)" ]; then
+    return 0
+  elif [ -n "${ndprefix}" ]; then
+    NETDATACLI_PATH="$(PATH="${ndprefix}:${PATH}" command -v netdatacli 2>/dev/null)"
 
     if "${NETDATACLI_PATH}" ping > /dev/null 2>&1; then
       return 0
     else
       return 1
     fi
+  else
+    return 1
   fi
 }
 
