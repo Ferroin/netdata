@@ -22,7 +22,7 @@
 #  - TMPDIR (set to a usable temporary directory)
 #  - NETDATA_NIGHTLIES_BASEURL (set the base url for downloading the dist tarball)
 
-# Next unused error code: U001F
+# Next unused error code: U0025
 
 set -e
 
@@ -593,11 +593,19 @@ check_for_curl() {
   fi
 }
 
+check_for_wget() {
+  if [ -z "${wget}" ]; then
+    wget="$(command -v wget 2>/dev/null && true)"
+  fi
+
+  if [ -z "${wget}" ]; then
+    wget="$(command -v wget2 2>/dev/null && true)"
+  fi
+}
+
 _safe_download() {
   url="${1}"
   dest="${2}"
-  succeeded=0
-  checked=0
 
   if echo "${url}" | grep -Eq "^file:///"; then
     cp "${url#file://}" "${dest}" || return 1
@@ -605,36 +613,61 @@ _safe_download() {
   fi
 
   check_for_curl
+  check_for_wget
 
   if [ -n "${curl}" ]; then
-    checked=1
+    set +e
+    "${curl}" -fsSL --connect-timeout 10 --retry 3 "${url}" > "${dest}"
+    result="$?"
+    set -e
 
-    if "${curl}" -fsSL --connect-timeout 10 --retry 3 "${url}" > "${dest}"; then
-      succeeded=1
-    elif [ "${dest}" != "/dev/null" ]; then
-      rm -f "${dest}"
-    fi
+    case "${result}" in
+      0) return 0 ;;
+      5|6|7)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 2
+          ;;
+      22|78)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 1
+          ;;
+      35|60|83)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 3
+          ;;
+      *)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 4
+          ;;
+    esac
+  elif [ -n "${wget}" ]; then
+    set +e
+    "${wget}" -T 15 -O - "${url}" > "${dest}"
+    result="$?"
+    set -e
+
+    case "${result}" in
+      0) return 0 ;;
+      4)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 2
+          ;;
+      5)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 3
+          ;;
+      8)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 1
+          ;;
+      *)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          return 4
+          ;;
+    esac
   fi
 
-  if [ "${succeeded}" -eq 0 ]; then
-    if command -v wget > /dev/null 2>&1; then
-      checked=1
-
-      if wget -T 15 -O - "${url}" > "${dest}"; then
-        succeeded=1
-      elif [ "${dest}" != "/dev/null" ]; then
-        rm -f "${dest}"
-      fi
-    fi
-  fi
-
-  if [ "${succeeded}" -eq 1 ]; then
-    return 0
-  elif [ "${checked}" -eq 1 ]; then
-    return 1
-  else
-    return 255
-  fi
+  return 255
 }
 
 download() {
@@ -646,13 +679,14 @@ download() {
   ret=$?
   set -e
 
-  if [ ${ret} -eq 0 ]; then
-    return 0
-  elif [ ${ret} -eq 255 ]; then
-    fatal "I need curl or wget to proceed, but neither is available on this system." U0004
-  else
-    fatal "Cannot download ${url}" U0005
-  fi
+  case "${ret}" in
+    0) return 0 ;;
+    1) fatal "File ${url} not found on remote server" U0022 ;;
+    2) fatal "Unable to connect to remote host to download ${url}" U0023 ;;
+    3) fatal "TLS error connecting to remote host to download ${URL}" U0024 ;;
+    255) fatal "I need curl or wget to proceed, but neither is available on this system." U0004 ;;
+    *) fatal "Cannot download ${url}" U0005 ;;
+  esac
 }
 
 get_netdata_latest_tag() {
@@ -712,7 +746,7 @@ else:
     print(data[0]['commit']['committer']['date'] if isinstance(data, list) and data else '')
 "
 
-  _safe_download "${commit_check_url}" "${commit_check_file}"
+  download "${commit_check_url}" "${commit_check_file}"
 
   if command -v jq > /dev/null 2>&1; then
     commit_date="$(jq '.[0].commit.committer.date' 2>/dev/null < "${commit_check_file}" | tr -d '"')"
@@ -1227,6 +1261,9 @@ update_binpkg() {
         error ""
         fatal "Unable to update due to native packages no longer being published for this platform" U001E
         ;;
+      2) fatal "Failed to connect to Netdata package repositories. This is most likely a result of networking problems with this system." U001F ;;
+      3) fatal "TLS error when trying to connect to Netdata package repositories." U0020 ;;
+      4) fatal "Unknown error when trying to connect to Netdata package repositories." U0021 ;;
       255) warning "Unable to check whether native packages are being published, wget or curl is required." ;;
     esac
   fi
