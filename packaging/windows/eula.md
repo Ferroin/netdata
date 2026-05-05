@@ -19,14 +19,14 @@ IF YOU DO NOT AGREE, DO NOT INSTALL OR USE THE SOFTWARE.
 The Software includes distinct components governed by separate licenses:
 
 \(a\) **Netdata Agent**: Licensed under GNU General Public License v3 or
-later ("GPLv3+". Your rights to use, modify, and distribute the Agent are
+later ("GPLv3+"). Your rights to use, modify, and distribute the Agent are
 solely governed by GPLv3+. A copy is included or available at:
 <https://www.gnu.org/licenses/gpl-3.0.en.html>. Obtain
-source code via Netdata' GitHub repository:
+source code via Netdata's GitHub repository:
 <https://github.com/netdata/netdata>.
 
 \(b\) **Netdata UI**: Licensed under Netdata Cloud UI License v1.0
-("NCUL1". Rights for use and distribution of the UI are governed solely
+("NCUL1"). Rights for use and distribution of the UI are governed solely
 by NCUL1, available
 at: <https://app.netdata.cloud/LICENSE.txt>.
 
@@ -44,7 +44,7 @@ explicitly authorizes such use.
 3\. **NETDATA CLOUD SUBSCRIPTION REQUIREMENT**
 
 \(a\) **Commercial Use**: Use of this Software requires an active paid
-commercial Netdata Cloud subscription ("Netdata Cloud Subscription".
+commercial Netdata Cloud subscription ("Netdata Cloud Subscription").
 
 \(b\) **Enforcement**: Certain features, including the Netdata UI, may
 require authentication against your Netdata Cloud Subscription.
@@ -82,7 +82,7 @@ separately.
 
 6\. **DISCLAIMER OF WARRANTIES**
 
-THE SOFTWARE IS PROVIDED "S IS,"WITHOUT ANY WARRANTY, EXPRESS OR
+THE SOFTWARE IS PROVIDED "AS IS," WITHOUT ANY WARRANTY, EXPRESS OR
 IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
 PARTICULAR PURPOSE, OR NON-INFRINGEMENT. NETDATA DOES NOT WARRANT
 UNINTERRUPTED OR ERROR-FREE SOFTWARE OPERATION.
