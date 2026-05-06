@@ -22,7 +22,7 @@
 #  - TMPDIR (set to a usable temporary directory)
 #  - NETDATA_NIGHTLIES_BASEURL (set the base url for downloading the dist tarball)
 
-# Next unused error code: U0025
+# Next unused error code: U0029
 
 set -e
 
@@ -614,22 +614,30 @@ _safe_download() {
 
   check_for_curl
   check_for_wget
+  ndtmpdir="$(create_exec_tmp_directory)"
+  dl_log="${ndtmpdir}/download.log"
+  rm -f "${dl_log}"
 
   if [ -n "${curl}" ]; then
     set +e
-    "${curl}" -fsSL --connect-timeout 10 --retry 3 "${url}" > "${dest}"
+    "${curl}" --fail --location --write-out "%{http_code}" --connect-timeout 10 --retry 3 "${url}" --output "${dest}" > "${dl_log}"
     result="$?"
     set -e
 
     case "${result}" in
       0) return 0 ;;
+      22|78)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+          case "$(tail -n 1 "${dl_log}")" in
+            404) return 1 ;;
+            4*) return 5 ;;
+            5*) return 6 ;;
+            *) return 4 ;;
+          esac
+          ;;
       5|6|7)
           [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
           return 2
-          ;;
-      22|78)
-          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
-          return 1
           ;;
       35|60|83)
           [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
@@ -642,12 +650,22 @@ _safe_download() {
     esac
   elif [ -n "${wget}" ]; then
     set +e
-    "${wget}" -T 15 -O - "${url}" > "${dest}"
+    "${wget}" --timeout 15 --server-response --output-file "${dl_log}" --output-document "${dest}" "${url}"
     result="$?"
     set -e
 
     case "${result}" in
       0) return 0 ;;
+      8)
+          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
+
+          case "$(grep "HTTP/" | awk '{ print $2 }')" in
+            404) return 1 ;;
+            4*) return 5 ;;
+            5*) return 6 ;;
+            *) return 4 ;;
+          esac
+          ;;
       4)
           [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
           return 2
@@ -655,10 +673,6 @@ _safe_download() {
       5)
           [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
           return 3
-          ;;
-      8)
-          [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
-          return 1
           ;;
       *)
           [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
@@ -683,7 +697,9 @@ download() {
     0) return 0 ;;
     1) fatal "File ${url} not found on remote server" U0022 ;;
     2) fatal "Unable to connect to remote host to download ${url}" U0023 ;;
-    3) fatal "TLS error connecting to remote host to download ${URL}" U0024 ;;
+    3) fatal "TLS error connecting to remote host to download ${url}" U0024 ;;
+    5) fatal "Client error when trying to download ${url}" U0027 ;;
+    6) fatal "Internal server error when trying to download ${url}" U0028 ;;
     255) fatal "I need curl or wget to proceed, but neither is available on this system." U0004 ;;
     *) fatal "Cannot download ${url}" U0005 ;;
   esac
@@ -693,14 +709,15 @@ get_netdata_latest_tag() {
   url="${1}/latest"
 
   check_for_curl
+  check_for_wget
 
   if [ -n "${curl}" ]; then
     tag=$("${curl}" "${url}" -s -L -I -o /dev/null -w '%{url_effective}')
   fi
 
   if [ -z "${tag}" ]; then
-    if command -v wget >/dev/null 2>&1; then
-      tag=$(wget -S -O /dev/null "${url}" 2>&1 | grep Location)
+    if [ -n "${wget}" ]; then
+      tag=$("${wget}" -S -O /dev/null "${url}" 2>&1 | grep Location)
     fi
   fi
 
@@ -1264,6 +1281,8 @@ update_binpkg() {
       2) fatal "Failed to connect to Netdata package repositories. This is most likely a result of networking problems with this system." U001F ;;
       3) fatal "TLS error when trying to connect to Netdata package repositories." U0020 ;;
       4) fatal "Unknown error when trying to connect to Netdata package repositories." U0021 ;;
+      5) fatal "Client error when trying to connect to Netdata package repositories." U0025 ;;
+      6) fatal "Internal server error when trying to connect to Netdata package repositories." U0026 ;;
       255) warning "Unable to check whether native packages are being published, wget or curl is required." ;;
     esac
   fi
