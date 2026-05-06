@@ -650,7 +650,7 @@ _safe_download() {
     esac
   elif [ -n "${wget}" ]; then
     set +e
-    "${wget}" --timeout 15 --server-response --output-file "${dl_log}" --output-document "${dest}" "${url}"
+    "${wget}" -T 15 -S -o "${dl_log}" -O "${dest}" "${url}"
     result="$?"
     set -e
 
@@ -659,7 +659,7 @@ _safe_download() {
       8)
           [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
 
-          case "$(grep "HTTP/" "${dl_log}" | awk '{ print $2 }')" in
+          case "$(grep "HTTP/" "${dl_log}" | tail -n 1 | awk '{ print $2 }')" in
             404) return 1 ;;
             4*) return 5 ;;
             5*) return 6 ;;
