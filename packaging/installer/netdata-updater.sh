@@ -659,7 +659,7 @@ _safe_download() {
       8)
           [ "${dest}" != "/dev/null" ] && rm -f "${dest}"
 
-          case "$(grep "HTTP/" | awk '{ print $2 }')" in
+          case "$(grep "HTTP/" "${dl_log}" | awk '{ print $2 }')" in
             404) return 1 ;;
             4*) return 5 ;;
             5*) return 6 ;;
@@ -763,7 +763,15 @@ else:
     print(data[0]['commit']['committer']['date'] if isinstance(data, list) and data else '')
 "
 
-  download "${commit_check_url}" "${commit_check_file}"
+  if ! _safe_download "${commit_check_url}" "${commit_check_file}"; then
+    warning "Failed to check for an updated updater script, skipping self-update check."
+
+    if [ -z "${NETDATA_TMPDIR_PATH}" ]; then
+      rm -rf "${ndtmpdir}" >&3 2>&3
+    fi
+
+    return 0
+  fi
 
   if command -v jq > /dev/null 2>&1; then
     commit_date="$(jq '.[0].commit.committer.date' 2>/dev/null < "${commit_check_file}" | tr -d '"')"
