@@ -711,35 +711,36 @@ get_netdata_latest_tag() {
   check_for_curl
   check_for_wget
 
+  if [ -z "${curl}" ] && [ -z "${wget}" ]; then
+    fatal "I need curl or wget to proceed, but neither of them are available on this system." U0006
+  fi
+
   if [ -n "${curl}" ]; then
-    tag=$("${curl}" "${url}" -s -L -I -o /dev/null -w '%{url_effective}')
+    tag=$("${curl}" "${url}" -s -L -I -o /dev/null -w '%{url_effective}' || true)
   fi
 
   if [ -z "${tag}" ]; then
     if [ -n "${wget}" ]; then
-      tag=$("${wget}" -S -O /dev/null "${url}" 2>&1 | grep Location)
+      tag=$("${wget}" -S -O /dev/null "${url}" 2>&1 | grep Location || true)
     fi
   fi
 
   if [ -z "${tag}" ]; then
-    fatal "I need curl or wget to proceed, but neither of them are available on this system." U0006
+    tag='latest'
   fi
 
   tag="$(echo "${tag}" | grep -Eom 1 '[^/]*/?$')"
 
   # Fallback case for simpler local testing.
   if echo "${tag}" | grep -Eq 'latest/?$'; then
-    if _safe_download "${url}/latest-version.txt" ./ndupdate-version.txt; then
-      tag="$(cat ./ndupdate-version.txt)"
+    _safe_download "${url}/latest-version.txt" ./ndupdate-version.txt
 
-      if grep -q 'Not Found' ./ndupdate-version.txt; then
-        tag="latest"
-      fi
+    case "$?" in
+      0) tag="$(cat ./ndupdate-version.txt)" ;;
+      *) tag='latest' ;;
+    esac
 
-      rm -f ./ndupdate-version.txt
-    else
-      tag="latest"
-    fi
+    rm -f ./ndupdate-version.txt
   fi
 
   echo "${tag}"
@@ -961,11 +962,11 @@ set_tarball_urls() {
     export NETDATA_TARBALL_URL="file://${path}/${filename}"
     export NETDATA_TARBALL_CHECKSUM_URL="file://${path}/sha256sums.txt"
   elif [ "$1" = "stable" ]; then
-    latest="$(get_netdata_latest_tag "${NETDATA_STABLE_BASE_URL}")"
+    latest="$(get_latest_tag)"
     export NETDATA_TARBALL_URL="${NETDATA_STABLE_BASE_URL}/download/$latest/${filename}"
     export NETDATA_TARBALL_CHECKSUM_URL="${NETDATA_STABLE_BASE_URL}/download/$latest/sha256sums.txt"
   else
-    tag="$(get_netdata_latest_tag "${NETDATA_NIGHTLY_BASE_URL}")"
+    tag="$(get_latest_tag)"
     export NETDATA_TARBALL_URL="${NETDATA_NIGHTLY_BASE_URL}/download/${tag}/${filename}"
     export NETDATA_TARBALL_CHECKSUM_URL="${NETDATA_NIGHTLY_BASE_URL}/download/${tag}/sha256sums.txt"
   fi
