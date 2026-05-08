@@ -562,6 +562,7 @@ _cannot_use_tmpdir() {
   return "${ret}"
 }
 
+# This is idempotent, subsequent invocations will always return the same path
 create_exec_tmp_directory() {
   if [ -n "${NETDATA_TMPDIR_PATH}" ]; then
     echo "${NETDATA_TMPDIR_PATH}"
@@ -584,7 +585,8 @@ create_exec_tmp_directory() {
 
   TMPDIR="${root_dir}"
 
-  mktemp -d -p "${root_dir}" -t netdata-updater-XXXXXXXXXX
+  NETDATA_TMPDIR_PATH="$(mktemp -d -p "${root_dir}" -t netdata-updater-XXXXXXXXXX)"
+  echo "${NETDATA_TMPDIR_PATH}"
 }
 
 check_for_curl() {
@@ -733,9 +735,12 @@ get_netdata_latest_tag() {
 
   # Fallback case for simpler local testing.
   if echo "${tag}" | grep -Eq 'latest/?$'; then
+    set -e
     _safe_download "${url}/latest-version.txt" ./ndupdate-version.txt
+    result="$?"
+    set +e
 
-    case "$?" in
+    case "${result}" in
       0) tag="$(cat ./ndupdate-version.txt)" ;;
       *) tag='latest' ;;
     esac
