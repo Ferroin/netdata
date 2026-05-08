@@ -589,17 +589,17 @@ create_exec_tmp_directory() {
 
 check_for_curl() {
   if [ -z "${curl}" ]; then
-    curl="$(PATH="${PATH}:/opt/netdata/bin" command -v curl 2>/dev/null && true)"
+    curl="$(PATH="${PATH}:/opt/netdata/bin" command -v curl 2>/dev/null || true)"
   fi
 }
 
 check_for_wget() {
   if [ -z "${wget}" ]; then
-    wget="$(command -v wget 2>/dev/null && true)"
+    wget="$(command -v wget 2>/dev/null || true)"
   fi
 
   if [ -z "${wget}" ]; then
-    wget="$(command -v wget2 2>/dev/null && true)"
+    wget="$(command -v wget2 2>/dev/null || true)"
   fi
 }
 
