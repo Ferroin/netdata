@@ -736,10 +736,10 @@ get_netdata_latest_tag() {
 
   # Fallback case for simpler local testing.
   if echo "${tag}" | grep -Eq 'latest/?$'; then
-    set -e
+    set +e
     _safe_download "${url}/latest-version.txt" ./ndupdate-version.txt
     result="$?"
-    set +e
+    set -e
 
     case "${result}" in
       0) tag="$(cat ./ndupdate-version.txt)" ;;
@@ -772,11 +772,7 @@ else:
 
   if ! _safe_download "${commit_check_url}" "${commit_check_file}"; then
     warning "Failed to check for an updated updater script, skipping self-update check."
-
-    if [ -z "${NETDATA_TMPDIR_PATH}" ]; then
-      rm -rf "${ndtmpdir}" >&3 2>&3
-    fi
-
+    rm -f "${commit_check_file}" 2>/dev/null || true
     return 0
   fi
 
@@ -789,7 +785,7 @@ else:
   fi
 
   if [ -z "${NETDATA_TMPDIR_PATH}" ]; then
-    rm -rf "${ndtmpdir}" >&3 2>&3
+    rm -f "${commit_check_file}" 2>/dev/null || true
   fi
 
   if [ -z "${commit_date}" ] ; then
