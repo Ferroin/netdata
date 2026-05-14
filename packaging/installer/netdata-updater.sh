@@ -773,7 +773,7 @@ else:
   if ! _safe_download "${commit_check_url}" "${commit_check_file}"; then
     warning "Failed to check for an updated updater script, skipping self-update check."
     rm -f "${commit_check_file}" 2>/dev/null || true
-    return 0
+    return 1
   fi
 
   if command -v jq > /dev/null 2>&1; then
