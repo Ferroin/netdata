@@ -13,6 +13,7 @@ dl_log="${tmp_dir}/dl.log"
 cache_path="${cache_dir}/${file}"
 extract_path="${tmp_dir}/ibm_mq"
 retry_delay=90
+max_tries=5
 need_to_fetch=1
 
 rm -rf "${extract_path}"
@@ -21,7 +22,7 @@ mkdir -p "${tmp_dir}" "${cache_dir}" "${extract_path}"
 fetch_url() {
     success=0
 
-    for i in $(seq 5) ; do
+    for i in $(seq "${max_tries}") ; do
         echo "Download attempt ${i}"
         set +e
         rm -f "${dl_log}"
@@ -60,7 +61,9 @@ fetch_url() {
                 ;;
         esac
 
-        sleep "${retry_delay}"
+        if [ "${i}" -ne "${max_tries}" ]; then
+            sleep "${retry_delay}"
+        fi
     done
 
     if [ "${success}" -ne 1 ]; then
