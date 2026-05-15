@@ -218,7 +218,7 @@ jobs:
         with:
           name: ibm-mq-libs
           path: ${{ github.workspace }}/tmp/ibm_mq
-          include_hidden_files: true
+          include-hidden-files: true
       - name: Failure Notification
         uses: rtCamp/action-slack-notify@v2
         env:

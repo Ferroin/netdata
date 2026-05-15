@@ -58,6 +58,8 @@ fetch_url() {
                 exit 1
                 ;;
         esac
+
+        sleep "${retry_delay}"
     done
 }
 
