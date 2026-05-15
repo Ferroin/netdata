@@ -39,6 +39,7 @@ fetch_url() {
         case "${ret}" in
             0)
                 echo "Download successful."
+                success=1
                 break
                 ;;
             22|78)
@@ -61,6 +62,11 @@ fetch_url() {
 
         sleep "${retry_delay}"
     done
+
+    if [ "${success}" -ne 1 ]; then
+        echo "Exhausted all retry attempts."
+        exit 1
+    fi
 }
 
 hash_valid() {
